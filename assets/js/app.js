@@ -282,7 +282,7 @@ function analyzeCompany(company) {
     content.innerHTML = `
         <h2>${analysis.title}</h2>
         ${analysis.content}
-        <div style="margin-top: 2rem; padding: 1rem; background: #e3f2fd; border-radius: 8px;">
+        <div class="student-tips">
             <h4>💡 Đề xuất cho sinh viên:</h4>
             <ul>
                 <li>Nâng cao nhận thức về bản chất của các tập đoàn độc quyền</li>
