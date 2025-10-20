@@ -1,3 +1,59 @@
+// ====== RAG (BM25) + LLM (Worker API) ======
+const WORKER_URL = "https://mln-proxy.mln122-ai.workers.dev";
+let chatAI = null;  // RAG object
+
+// Prompt cứng
+const SYS_PROMPT = `
+Bạn là một trợ lý AI tiếng Việt, có kiến thức về Kinh tế Chính trị Mác–Lênin.
+Nhiệm vụ của bạn là trả lời câu hỏi của người dùng một cách **sâu sắc, đầy đủ và hữu ích nhất có thể**.
+Bạn **chỉ được sử dụng tiếng Việt hoàn toàn**.
+
+---
+**HƯỚNG DẪN TRẢ LỜI:**
+
+Bạn sẽ nhận được câu hỏi người dùng và **có thể** có một [NGỮ CẢNH] chứa tài liệu tham khảo.
+
+1.  **XEM [NGỮ CẢNH] LÀ GỢI Ý (NẾU CÓ):**
+    * Nếu [NGỮ CẢNH] được cung cấp, hãy xem nó như một **điểm khởi đầu**, nguồn tham khảo phụ.
+    * **Đừng ngần ngại vượt ra ngoài** thông tin trong [NGỮ CẢNH] nếu bạn thấy cần thiết để trả lời đầy đủ hơn.
+
+2.  **ƯU TIÊN VẬN DỤNG KIẾN THỨC CỦA BẠN:**
+    * **Hãy tích cực sử dụng kiến thức, khả năng phân tích, và ví dụ** của riêng bạn để làm cho câu trả lời chi tiết, sâu sắc và dễ hiểu.
+    * Cố gắng liên hệ thực tế, giải thích các khái niệm phức tạp, hoặc đưa ra các góc nhìn đa chiều. Mục tiêu là cung cấp giá trị tối đa cho người dùng.
+
+3.  **XỬ LÝ KHI THIẾU THÔNG TIN:**
+    * Nếu [NGỮ CẢNH] rỗng, hoặc không đủ thông tin, hoặc câu hỏi hỏi về một đối tượng cụ thể (tên công ty, người) không có trong ngữ cảnh, **hãy dựa hoàn toàn vào kiến thức của bạn để trả lời tốt nhất có thể.**
+    * Nếu bạn sử dụng kiến thức chung để nói về một đối tượng cụ thể không có trong ngữ cảnh, **không cần** phải nói rõ là thông tin này không có trong ngữ cảnh (trừ khi bạn muốn làm vậy để câu trả lời tự nhiên hơn).
+
+4.  **KHÔNG CẦN TRÍCH DẪN NGUỒN:** Bạn không cần phải thêm ID nguồn hay bất kỳ hình thức trích dẫn nào vào cuối câu trả lời.
+
+5.  **HỘI THOẠI THÔNG THƯỜNG:**
+    * Nếu câu hỏi không mang tính học thuật (ví dụ: "Chào bạn") và không có [NGỮ CẢNH], hãy trả lời một cách tự nhiên.
+`;
+
+// Gọi tới Cloudflare Worker → Worker gọi Groq
+async function callLLM(question, sys, history) {
+  const messagesToSend = [
+    ...history,
+    { role: "user", content: question }
+  ];
+
+  const res = await fetch(`${WORKER_URL}/chat`, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      provider: "groq",
+      model: "llama-3.1-8b-instant",
+      system: sys,
+      messages: messagesToSend
+    })
+  });
+  const data = await res.json();
+  return data.text || "Không nhận được phản hồi từ LLM.";
+}
+
+
+
 // Game State
 let gameState = {
     capital: 100000,
@@ -140,18 +196,6 @@ const companyAnalysis = {
     }
 };
 
-// AI Chat Responses
-const aiResponses = {
-    "cạnh tranh độc quyền": "Cạnh tranh độc quyền là hình thức cạnh tranh giữa các tập đoàn lớn có khả năng thao túng thị trường. Theo Mác-Lênin, đây là giai đoạn phát triển cao của chủ nghĩa tư bản, nơi tư bản tập trung và tập trung hóa đạt mức độ cao.",
-    
-    "bóc lột": "Bóc lột trong chủ nghĩa tư bản là việc tư bản chiếm đoạt giá trị thặng dư do người lao động tạo ra. Các tập đoàn lớn bóc lột không chỉ người lao động mà còn cả người tiêu dùng thông qua việc thu thập và sử dụng dữ liệu cá nhân.",
-    
-    "tập trung tư bản": "Tập trung tư bản là quá trình tích tụ tư bản vào tay một số ít các tập đoàn lớn. Điều này dẫn đến việc hình thành các độc quyền và oligopoly, làm giảm tính cạnh tranh thực sự trên thị trường.",
-    
-    "giải pháp": "Để đối phó với cạnh tranh độc quyền, sinh viên cần: 1) Nâng cao nhận thức về bản chất của chủ nghĩa tư bản, 2) Hỗ trợ các doanh nghiệp nhỏ và startup, 3) Thúc đẩy tính minh bạch và công bằng trong kinh doanh, 4) Phát triển các mô hình kinh tế hợp tác.",
-    
-    "startup": "Startup trong môi trường cạnh tranh độc quyền gặp nhiều khó khăn: thiếu vốn, khó tiếp cận thị trường, bị các tập đoàn lớn mua lại hoặc loại bỏ. Cần có chính sách hỗ trợ và bảo vệ các doanh nghiệp nhỏ."
-};
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
@@ -317,7 +361,7 @@ function initializeChat() {
     const chatInput = document.getElementById('chat-input');
     const sendBtn = document.getElementById('send-btn');
     
-    chatInput.addEventListener('keypress', function(e) {
+    chatInput.addEventListener('keydown', function(e) {
         if (e.key === 'Enter') {
             sendMessage();
         }
@@ -326,26 +370,62 @@ function initializeChat() {
     sendBtn.addEventListener('click', sendMessage);
 }
 
-function sendMessage() {
-    const chatInput = document.getElementById('chat-input');
-    const chatMessages = document.getElementById('chat-messages');
-    const message = chatInput.value.trim();
+async function sendMessage() {
+  if (!chatAI) {
+    chatAI = new ChatAI();
+    await chatAI.load();
+  }
+
+  const chatInput = document.getElementById('chat-input');
+  const message = (chatInput.value || '').trim();
+  if (!message) return;
+
+  addMessage(message, 'user');
+  chatInput.value = '';
+
+  const loadingDiv = addMessage('<div class="loading"></div> Đang suy nghĩ...', 'ai');
+
+  try {
+    // === START MEMORY CHANGES ===
+    let currentHistory = JSON.parse(sessionStorage.getItem('chatHistory') || '[]');
+
+    const MAX_HISTORY_LENGTH = 6;
+    if (currentHistory.length > MAX_HISTORY_LENGTH) {
+      currentHistory = currentHistory.slice(-MAX_HISTORY_LENGTH);
+    }
+    // === END MEMORY CHANGES ===
+    let topK = 2;
+    if (/(liên hệ|phân tích|tác động|nguyên nhân|hệ quả)/i.test(message))
+      topK = 4;
+    if (message.length > 120)
+      topK = 5;
+
+    const hits = await chatAI.retrieveHybrid(message, topK, null);
+    const context = chatAI.summarize(hits);
+    const sys = SYS_PROMPT + "\n\n---\n[NGỮ CẢNH]\n" + context +
+                "\n---";
+    // === START MEMORY CHANGES ===
+    const reply = await callLLM(message, sys, currentHistory);
+    // === END MEMORY CHANGES ===
+    let cleanedReply = reply.replace(/(\w)–(\w)/g, '$1 – $2');
+
+    loadingDiv.innerHTML = `<div class="message-content"><i class="fas fa-robot"></i><p>${cleanedReply.replace(/\n/g,'<br>')}</p></div>`;
+    // === START MEMORY CHANGES ===
+    currentHistory.push({ role: "user", content: message });
+    currentHistory.push({ role: "assistant", content: reply });
+
+    if (currentHistory.length > MAX_HISTORY_LENGTH) {
+      currentHistory = currentHistory.slice(-MAX_HISTORY_LENGTH);
+    }
     
-    if (!message) return;
+    sessionStorage.setItem('chatHistory', JSON.stringify(currentHistory));
     
-    // Add user message
-    addMessage(message, 'user');
-    chatInput.value = '';
-    
-    // Show loading
-    const loadingDiv = addMessage('<div class="loading"></div> Đang suy nghĩ...', 'ai');
-    
-    // Generate AI response
-    setTimeout(() => {
-        const response = generateAIResponse(message);
-        loadingDiv.innerHTML = `<div class="message-content"><i class="fas fa-robot"></i><p>${response}</p></div>`;
-    }, 1500);
+  } catch (e) {
+    console.error('AI error:', e);
+    loadingDiv.innerHTML = `<div class="message-content"><i class="fas fa-robot"></i><p>Lỗi khi gọi API hoặc proxy.</p></div>`;
+  }
 }
+
 
 function addMessage(content, sender) {
     const chatMessages = document.getElementById('chat-messages');
@@ -364,32 +444,6 @@ function addMessage(content, sender) {
     return messageDiv;
 }
 
-function generateAIResponse(message) {
-    const lowerMessage = message.toLowerCase();
-    
-    // Check for specific keywords
-    for (const [keyword, response] of Object.entries(aiResponses)) {
-        if (lowerMessage.includes(keyword)) {
-            return response;
-        }
-    }
-    
-    // General responses
-    if (lowerMessage.includes('mác') || lowerMessage.includes('lênin')) {
-        return "Theo lý thuyết Mác-Lênin, chủ nghĩa tư bản phát triển qua các giai đoạn từ cạnh tranh tự do đến độc quyền. Cạnh tranh độc quyền là đặc trưng của chủ nghĩa tư bản hiện đại, nơi một số ít tập đoàn lớn thống trị thị trường và bóc lột người lao động cũng như người tiêu dùng.";
-    }
-    
-    if (lowerMessage.includes('tư bản') || lowerMessage.includes('capitalism')) {
-        return "Chủ nghĩa tư bản là hệ thống kinh tế dựa trên sở hữu tư nhân về tư liệu sản xuất và bóc lột giá trị thặng dư. Trong giai đoạn độc quyền, tư bản tập trung vào tay một số ít tập đoàn lớn, tạo ra sự bất bình đẳng và bóc lột.";
-    }
-    
-    if (lowerMessage.includes('giải pháp') || lowerMessage.includes('làm gì')) {
-        return "Để đối phó với cạnh tranh độc quyền, sinh viên cần: 1) Nâng cao nhận thức về bản chất của chủ nghĩa tư bản, 2) Hỗ trợ các doanh nghiệp nhỏ và startup, 3) Thúc đẩy tính minh bạch và công bằng trong kinh doanh, 4) Phát triển các mô hình kinh tế hợp tác và chia sẻ.";
-    }
-    
-    // Default response
-    return "Tôi có thể giúp bạn hiểu về lý thuyết Mác-Lênin về cạnh tranh và độc quyền. Bạn có thể hỏi về: bản chất của cạnh tranh độc quyền, tác động của các tập đoàn lớn, hoặc đề xuất giải pháp cho sinh viên. Hãy đặt câu hỏi cụ thể hơn!";
-}
 
 // Studio functionality
 function initializeStudio() {
