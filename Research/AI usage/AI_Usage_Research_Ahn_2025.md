@@ -14,7 +14,7 @@
 **Kết quả sinh:** `kb_research_ahn_self_preferencing_2025.json` gồm 12 mục.
 
 **Phần sinh viên cần kiểm chứng/chỉnh sửa:**
-- Đối chiếu số liệu/mốc sự kiện (FTC 2013; EC 2017, phán quyết 2021 & 2024; mốc chính sách Hàn Quốc 2022–2024) với tài liệu gốc.
+- Đối chiếu số liệu/mốc sự kiện (FTC 2013; EC 2017, phán quyết 2021 & 2025; mốc chính sách Hàn Quốc 2022–2025) với tài liệu gốc.
 - Nếu trích dẫn cụ thể Điều luật (Section 5 FTC Act; Section 2 Sherman; Điều 102 TFEU; MRFTA; DMA), nên thêm trích yếu văn bản chính thống/điều khoản.
 - Gắn liên hệ với **Giáo trình LLCT – Chương 4** (độc quyền, tư bản tài chính, xuất khẩu tư bản, phân chia thị trường) để đáp ứng tiêu chí “có trách nhiệm”.
 
