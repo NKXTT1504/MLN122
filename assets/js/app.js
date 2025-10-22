@@ -744,7 +744,8 @@ function addMessage(content, sender) {
     if (sender === 'user') {
         messageDiv.innerHTML = `<div class="message-content"><i class="fas fa-user"></i><p>${content}</p></div>`;
     } else {
-        messageDiv.innerHTML = `<div class="message-content"><i class="fas fa-robot"></i><p>${content}</p></div>`;
+        let htmlContent = marked.parse(content);
+        messageDiv.innerHTML = `<div class="message-content"><i class="fas fa-robot"></i>${htmlContent}</div>`;
     }
     
     chatMessages.appendChild(messageDiv);
