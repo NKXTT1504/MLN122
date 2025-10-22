@@ -1143,4 +1143,49 @@ select {
     .form-row.two-cols { grid-template-columns: 1fr; }
 }
 
+/* Prompts Page */
+.prompts-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.prompt-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem;
+    box-shadow: var(--shadow);
+}
+
+.prompt-card h3 { margin: 0.5rem 0; }
+.prompt-card p { color: var(--text-muted); }
+
+.prompt-icon {
+    width: 48px; height: 48px; border-radius: 12px;
+    display: grid; place-items: center;
+    background: var(--bg, #eef2ff);
+    color: var(--fg, #4f46e5);
+}
+
+.guide-box {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem;
+}
+
+.guide-box h3 { color: var(--primary); margin-bottom: 0.5rem; }
+.guide-box p { color: var(--text); margin-bottom: 0.75rem; }
+
+.guide-stats { display: flex; gap: 1rem; color: var(--text-muted); margin-bottom: 0.75rem; }
+.guide-stats span { display: inline-flex; gap: 0.4rem; align-items: center; }
+
+.guide-actions { display: flex; gap: 0.5rem; }
+
+@media (max-width: 992px) {
+    .prompts-grid { grid-template-columns: 1fr; }
+}
+
 
