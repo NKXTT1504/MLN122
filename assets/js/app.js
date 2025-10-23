@@ -1,5 +1,5 @@
 // ====== RAG (BM25) + LLM (Worker API) ======
-const WORKER_URL = "https://mln-proxy.mln122-ai.workers.dev";
+const WORKER_URL = "https://api.mln-chatbot.online/";
 let chatAI = null;  // RAG object
 
 // Prompt cứng
@@ -744,7 +744,8 @@ function addMessage(content, sender) {
     if (sender === 'user') {
         messageDiv.innerHTML = `<div class="message-content"><i class="fas fa-user"></i><p>${content}</p></div>`;
     } else {
-        messageDiv.innerHTML = `<div class="message-content"><i class="fas fa-robot"></i><p>${content}</p></div>`;
+        let htmlContent = marked.parse(content);
+        messageDiv.innerHTML = `<div class="message-content"><i class="fas fa-robot"></i>${htmlContent}</div>`;
     }
     
     chatMessages.appendChild(messageDiv);
