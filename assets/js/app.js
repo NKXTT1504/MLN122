@@ -1,5 +1,6 @@
 // ====== RAG (BM25) + LLM (Worker API) ======
 const WORKER_URL = "https://api.mln-chatbot.online";
+const FALLBACK_URL = "https://mln-proxy.mln122-ai.workers.dev";
 let chatAI = null;  // RAG object
 
 // Prompt cứng
@@ -38,18 +39,81 @@ async function callLLM(question, sys, history) {
     { role: "user", content: question }
   ];
 
-  const res = await fetch(`${WORKER_URL}/chat`, {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({
-      provider: "groq",
-      model: "llama-3.1-8b-instant",
-      system: sys,
-      messages: messagesToSend
-    })
-  });
-  const data = await res.json();
-  return data.text || "Không nhận được phản hồi từ LLM.";
+  // Thử API chính trước
+  try {
+    const res = await fetch(`${WORKER_URL}/chat`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "User-Agent": "MLN122-Chatbot/1.0"
+      },
+      body: JSON.stringify({
+        provider: "groq",
+        model: "llama-3.1-8b-instant",
+        system: sys,
+        messages: messagesToSend
+      })
+    });
+    
+    if (res.ok) {
+      const data = await res.json();
+      return data.text || "Không nhận được phản hồi từ LLM.";
+    } else {
+      console.warn(`Primary API failed: ${res.status} ${res.statusText}`);
+      console.warn('Response headers:', res.headers);
+      const errorText = await res.text();
+      console.warn('Error response:', errorText);
+    }
+  } catch (error) {
+    console.warn(`Primary API error: ${error.message}, trying fallback...`);
+  }
+
+  // Delay để tránh rate limiting
+  await new Promise(resolve => setTimeout(resolve, 1000));
+
+  // Fallback API
+  try {
+    const res = await fetch(`${FALLBACK_URL}/chat`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "User-Agent": "MLN122-Chatbot/1.0"
+      },
+      body: JSON.stringify({
+        provider: "groq",
+        model: "llama-3.1-8b-instant",
+        system: sys,
+        messages: messagesToSend
+      })
+    });
+    
+    if (res.ok) {
+      const data = await res.json();
+      return data.text || "Không nhận được phản hồi từ LLM.";
+    } else {
+      return `Lỗi API: ${res.status} - ${res.statusText}. Vui lòng thử lại sau.`;
+    }
+  } catch (error) {
+    console.error('Both APIs failed:', error);
+    
+    // Local fallback responses
+    const fallbackResponses = {
+      "bản chất của cạnh tranh độc quyền": "Cạnh tranh độc quyền là hình thái cạnh tranh trong đó có một số ít doanh nghiệp lớn thống trị thị trường. Theo lý thuyết Mác-Lênin, đây là kết quả của quá trình tích tụ và tập trung tư bản, dẫn đến hình thành các tổ chức độc quyền có khả năng thao túng giá cả và thị trường.",
+      "giải pháp": "Các giải pháp chính bao gồm: 1) Xây dựng luật cạnh tranh nền tảng, 2) Bảo vệ quyền lợi lao động gig, 3) Đảm bảo tính minh bạch trong thuật toán, 4) Thúc đẩy đổi mới công nghệ để giảm phụ thuộc vào độc quyền.",
+      "tác động": "Cạnh tranh độc quyền tạo ra nhiều tác động tiêu cực: bóc lột lao động, thao túng giá cả, hạn chế cạnh tranh, và tăng bất bình đẳng xã hội. Tuy nhiên, nó cũng có thể thúc đẩy đổi mới công nghệ và hiệu quả kinh tế."
+    };
+    
+    const lowerQuestion = question.toLowerCase();
+    for (const [key, response] of Object.entries(fallbackResponses)) {
+      if (lowerQuestion.includes(key)) {
+        return `[Chế độ offline] ${response}`;
+      }
+    }
+    
+    return "Lỗi kết nối. Vui lòng kiểm tra kết nối mạng và thử lại.";
+  }
 }
 
 
