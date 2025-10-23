@@ -1,5 +1,5 @@
 // ====== RAG (BM25) + LLM (Worker API) ======
-const WORKER_URL = "https://api.mln-chatbot.online/";
+const WORKER_URL = "https://api.mln-chatbot.online";
 let chatAI = null;  // RAG object
 
 // Prompt cứng
